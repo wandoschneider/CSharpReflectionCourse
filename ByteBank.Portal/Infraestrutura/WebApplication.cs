@@ -40,48 +40,17 @@ namespace ByteBank.Portal.Infraestrutura
             var request = contexto.Request;
             var response = contexto.Response;
 
-            var path = request.Url.AbsolutePath;
+            var path = request.Url.PathAndQuery;
 
             if (Utilidades.IsArquivo(path))
             {
-                var assembly = Assembly.GetExecutingAssembly();
-                var nomeResource = Utilidades.ConverterPathParaNomeAssembly(path);
-
-                var resourceStream = assembly.GetManifestResourceStream(nomeResource);
-
-                if (resourceStream is null)
-                {
-                    response.StatusCode = 404;
-                    response.OutputStream.Close();
-                }
-                else
-                {
-                    var bytesResource = new byte[resourceStream.Length];
-
-                    resourceStream.Read(bytesResource, 0, (int)resourceStream.Length);
-
-                    response.ContentType = Utilidades.ObterTipoDeConteudo(path);
-                    response.StatusCode = 200;
-                    response.ContentLength64 = resourceStream.Length;
-
-                    response.OutputStream.Write(bytesResource, 0, bytesResource.Length);
-
-                    response.OutputStream.Close();
-                }
+                var manipulador = new ManipuladorRequisicaoArquivo();
+                manipulador.Manipular(response, path);
             }
-            else if (path == "/Cambio/MXN")
+            else
             {
-                var controller = new CambioController();
-                var paginaConteudo = controller.MXN();
-
-                var bufferArquivo = Encoding.UTF8.GetBytes(paginaConteudo);
-                
-                response.StatusCode = 200;
-                response.ContentType = "text/html; charset=utf-8";
-                response.ContentLength64 = bufferArquivo.Length;
-                
-                response.OutputStream.Write(bufferArquivo, 0, bufferArquivo.Length);
-                response.OutputStream.Close();
+                var manipulador = new ManipuladorRequisicaoController();
+                manipulador.Manipular(response, path);
             }
 
             httpListener.Stop();
